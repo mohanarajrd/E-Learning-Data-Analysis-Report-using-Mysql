@@ -1,0 +1,177 @@
+-- =========================================
+-- E-Learning Database Project
+-- =========================================
+
+DROP DATABASE IF EXISTS elearning_db;
+CREATE DATABASE elearning_db;
+USE elearning_db;
+
+-- =========================================
+-- 1. Create Tables
+-- =========================================
+
+CREATE TABLE learners
+(
+    learner_id INT PRIMARY KEY,
+    full_name VARCHAR(100),
+    country VARCHAR(50)
+);
+
+CREATE TABLE courses (
+    course_id INT PRIMARY KEY,
+    course_name VARCHAR(100),
+    category VARCHAR(50),
+    unit_price DECIMAL(10,2)
+);
+
+CREATE TABLE purchases (
+    purchase_id INT PRIMARY KEY,
+    learner_id INT,
+    course_id INT,
+    quantity INT,
+    purchase_date DATE,
+    
+    FOREIGN KEY (learner_id) REFERENCES learners(learner_id),
+    FOREIGN KEY (course_id) REFERENCES courses(course_id)
+);
+
+-- =========================================
+-- 2. Insert Sample Data
+-- =========================================
+
+INSERT INTO learners VALUES
+(1, 'Ravi Kumar', 'India'),
+(2, 'John Smith', 'USA'),
+(3, 'Anita Sharma', 'India'),
+(4, 'David Lee', 'UK'),
+(5, 'Maria Garcia', 'Spain');
+
+INSERT INTO courses VALUES
+(101, 'SQL for Beginners', 'Database', 50.00),
+(102, 'Python for Data Analysis', 'Programming', 75.00),
+(103, 'Power BI Dashboard', 'Business Intelligence', 60.00),
+(104, 'Excel Advanced', 'Productivity', 40.00),
+(105, 'Machine Learning Basics', 'AI', 100.00);
+
+INSERT INTO purchases VALUES
+(1, 1, 101, 2, '2024-01-10'),
+(2, 2, 102, 1, '2024-01-12'),
+(3, 3, 103, 3, '2024-01-15'),
+(4, 1, 104, 1, '2024-01-18'),
+(5, 4, 101, 2, '2024-01-20'),
+(6, 5, 102, 1, '2024-01-22'),
+(7, 3, 101, 1, '2024-01-25'),
+(8, 2, 103, 2, '2024-01-28');
+
+-- =========================================
+-- 3. Data Exploration Using Joins
+-- =========================================
+
+-- INNER JOIN
+SELECT 
+    l.full_name AS learner_name,
+    l.country,
+    c.course_name,
+    c.category,
+    p.quantity,
+    FORMAT(p.quantity * c.unit_price,2) AS total_amount,
+    p.purchase_date
+FROM purchases p
+INNER JOIN learners l
+ON p.learner_id = l.learner_id
+INNER JOIN courses c
+ON p.course_id = c.course_id
+ORDER BY total_amount DESC;
+
+-- LEFT JOIN
+SELECT 
+    l.full_name AS learner_name,
+    l.country,
+    c.course_name,
+    c.category,
+    p.quantity,
+    FORMAT(p.quantity * c.unit_price,2) AS total_amount,
+    p.purchase_date
+FROM learners l
+LEFT JOIN purchases p
+ON l.learner_id = p.learner_id
+LEFT JOIN courses c
+ON p.course_id = c.course_id
+ORDER BY learner_name;
+
+-- RIGHT JOIN
+SELECT 
+    c.course_name,
+    c.category,
+    l.full_name AS learner_name,
+    p.quantity,
+    FORMAT(p.quantity * c.unit_price,2) AS total_amount,
+    p.purchase_date
+FROM purchases p
+RIGHT JOIN courses c
+ON p.course_id = c.course_id
+LEFT JOIN learners l
+ON p.learner_id = l.learner_id
+ORDER BY c.course_name;
+
+-- =========================================
+-- 4. Analytical Queries
+-- =========================================
+
+-- Q1 Total Spending of Each Learner
+SELECT 
+    l.full_name,
+    l.country,
+    FORMAT(SUM(p.quantity * c.unit_price),2) AS total_spent
+FROM purchases p
+JOIN learners l
+ON p.learner_id = l.learner_id
+JOIN courses c
+ON p.course_id = c.course_id
+GROUP BY l.full_name, l.country
+ORDER BY total_spent DESC;
+
+-- Q2 Top 3 Most Purchased Courses
+SELECT 
+    c.course_name,
+    SUM(p.quantity) AS total_quantity_sold
+FROM purchases p
+JOIN courses c
+ON p.course_id = c.course_id
+GROUP BY c.course_name
+ORDER BY total_quantity_sold DESC
+LIMIT 3;
+
+-- Q3 Category Revenue and Unique Learners
+SELECT 
+    c.category,
+    FORMAT(SUM(p.quantity * c.unit_price),2) AS total_revenue,
+    COUNT(DISTINCT p.learner_id) AS unique_learners
+FROM purchases p
+JOIN courses c
+ON p.course_id = c.course_id
+GROUP BY c.category
+ORDER BY total_revenue DESC;
+
+-- Q4 Learners Purchasing More Than One Category
+SELECT 
+    l.full_name,
+    COUNT(DISTINCT c.category) AS category_count
+FROM purchases p
+JOIN learners l
+ON p.learner_id = l.learner_id
+JOIN courses c
+ON p.course_id = c.course_id
+GROUP BY l.full_name
+HAVING COUNT(DISTINCT c.category) > 1;
+
+-- Q5 Courses Not Purchased
+SELECT 
+    c.course_name,
+    c.category
+FROM courses c
+LEFT JOIN purchases p
+ON c.course_id = p.course_id
+WHERE p.course_id IS NULL;
+
+
